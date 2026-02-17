@@ -316,7 +316,7 @@
 
             <div class="footerNote">
               Tip: Wrong answers go to the <b>Difficult Words Pool</b> and appear in the <b>Daily Difficult Quiz</b> (regenerates every day).
-              Correctly answer a Source Pool word <b>10 times</b> → it moves to <b>Learned Words</b>.
+              Correctly answer a Source Pool word <b>5 times</b> → it moves to <b>Learned Words</b>.
             </div>
           </div>
         </div>
@@ -926,7 +926,7 @@
             w.correct10 = (w.correct10||0) + 1;
             w.lifetimeCorrect = (w.lifetimeCorrect||0) + 1;
 
-            if(w.correct10 >= 10){
+            if(w.correct10 >= 5){
               markLearned(w);
               toast("Learned! Moved to Learned Words.");
               // if removed, we might now have fewer than 4; just proceed
@@ -1076,7 +1076,7 @@
           <td><b>${escapeHTML(w.korean)}</b></td>
           <td class="mono">${escapeHTML(w.roman || romanizeHangul(w.korean))}</td>
           <td>${escapeHTML(w.english)}</td>
-          <td class="center">${escapeHTML(w.lifetimeCorrect || 0)} <span class="muted">(${escapeHTML(w.correct10||0)}/10)</span></td>
+          <td class="center">${escapeHTML(w.lifetimeCorrect || 0)} <span class="muted">(${escapeHTML(w.correct10||0)}/5)</span></td>
           <td class="right">
             <button class="btn" data-act="speak" data-id="${w.id}">🔊</button>
             <button class="btn danger" data-act="del" data-id="${w.id}">Delete</button>
@@ -1468,4 +1468,5 @@
   </script>
 </body>
 </html>
+
 
