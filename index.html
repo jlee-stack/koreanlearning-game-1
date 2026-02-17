@@ -1,0 +1,1465 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Multiple Choice Game v1 — Korean</title>
+  <style>
+    :root{
+      --bg:#0a0a0d;
+      --panel:#111118;
+      --panel2:#0f0f15;
+      --text:#e9e9f1;
+      --muted:#a7a7bd;
+      --line:#232338;
+      --accent:#7c5cff;
+      --accent2:#19d3ff;
+      --good:#2ee59d;
+      --bad:#ff4d6d;
+      --warn:#ffcc66;
+      --shadow: 0 12px 40px rgba(0,0,0,.55);
+      --radius:18px;
+      --radius2:14px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji","Segoe UI Emoji";
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:var(--sans);
+      background:
+        radial-gradient(900px 500px at 20% 0%, rgba(124,92,255,.18), transparent 55%),
+        radial-gradient(900px 500px at 80% 20%, rgba(25,211,255,.12), transparent 60%),
+        radial-gradient(900px 500px at 50% 100%, rgba(46,229,157,.08), transparent 60%),
+        var(--bg);
+      color:var(--text);
+      min-height:100vh;
+    }
+    a{color:inherit}
+    .wrap{max-width:1100px;margin:0 auto;padding:22px 16px 40px;}
+    header{
+      display:flex;align-items:center;justify-content:space-between;gap:14px;
+      margin:6px 0 18px;
+    }
+    .brand{
+      display:flex;align-items:center;gap:12px;
+    }
+    .logo{
+      width:40px;height:40px;border-radius:12px;
+      background: linear-gradient(135deg, rgba(124,92,255,.95), rgba(25,211,255,.9));
+      box-shadow: 0 10px 30px rgba(124,92,255,.25);
+    }
+    h1{font-size:16px;margin:0;letter-spacing:.2px}
+    .sub{font-size:12px;color:var(--muted);margin-top:2px}
+    nav{
+      display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;
+    }
+    .tab{
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.03);
+      color:var(--text);
+      padding:10px 12px;border-radius:999px;
+      font-size:12px;letter-spacing:.2px;
+      cursor:pointer;
+      transition:.15s transform, .15s border-color, .15s background;
+      user-select:none;
+    }
+    .tab:hover{transform:translateY(-1px);border-color:rgba(124,92,255,.55)}
+    .tab.active{
+      border-color:rgba(124,92,255,.75);
+      background: linear-gradient(135deg, rgba(124,92,255,.18), rgba(25,211,255,.10));
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap:14px;
+    }
+    @media (max-width: 900px){
+      .grid{grid-template-columns:1fr}
+      nav{justify-content:flex-start}
+    }
+
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.02));
+      border: 1px solid rgba(255,255,255,.07);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding:16px;
+    }
+    .card h2{
+      margin:0 0 10px;
+      font-size:14px;color:var(--text);font-weight:650;
+      letter-spacing:.2px;
+      display:flex;align-items:center;justify-content:space-between;gap:10px;
+    }
+    .pill{
+      font-size:11px;color:var(--muted);
+      border:1px solid rgba(255,255,255,.10);
+      padding:6px 10px;border-radius:999px;
+      background: rgba(0,0,0,.22);
+    }
+    .muted{color:var(--muted)}
+    .small{font-size:12px}
+    .divider{height:1px;background:rgba(255,255,255,.08);margin:12px 0}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .grow{flex:1}
+
+    .btn{
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+      color:var(--text);
+      border-radius: 12px;
+      padding:10px 12px;
+      cursor:pointer;
+      transition:.15s transform,.15s border-color,.15s background;
+      font-size:12px;
+      user-select:none;
+    }
+    .btn:hover{transform:translateY(-1px);border-color:rgba(25,211,255,.45)}
+    .btn.primary{
+      border-color:rgba(124,92,255,.65);
+      background: linear-gradient(135deg, rgba(124,92,255,.22), rgba(25,211,255,.10));
+    }
+    .btn.danger{
+      border-color:rgba(255,77,109,.6);
+      background: rgba(255,77,109,.10);
+    }
+    .btn.good{
+      border-color:rgba(46,229,157,.55);
+      background: rgba(46,229,157,.10);
+    }
+    .btn:disabled{
+      opacity:.55;
+      cursor:not-allowed;
+      transform:none;
+    }
+
+    input, textarea, select{
+      width:100%;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.28);
+      color: var(--text);
+      padding:10px 12px;
+      outline:none;
+      font-size:13px;
+    }
+    textarea{min-height:88px;resize:vertical}
+    label{font-size:12px;color:var(--muted);display:block;margin:10px 0 6px}
+    .hint{font-size:11px;color:var(--muted);margin-top:6px;line-height:1.4}
+    .korean{
+      font-size:36px;
+      letter-spacing:.2px;
+      font-weight:750;
+      margin:10px 0 6px;
+    }
+    .roman{font-family:var(--mono);font-size:12px;color:rgba(233,233,241,.88)}
+    .meaning{font-size:14px;color:var(--muted);margin-top:6px}
+    .choices{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+      margin-top:12px;
+    }
+    @media (max-width: 560px){
+      .choices{grid-template-columns:1fr}
+    }
+    .choice{
+      text-align:left;
+      padding:12px 12px;
+      border-radius: 14px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.03);
+      cursor:pointer;
+      transition:.15s transform,.15s border-color,.15s background;
+      min-height:44px;
+      display:flex;align-items:center;justify-content:space-between;gap:10px;
+      font-size:13px;
+    }
+    .choice:hover{transform:translateY(-1px);border-color:rgba(124,92,255,.55)}
+    .choice.correct{border-color:rgba(46,229,157,.7);background:rgba(46,229,157,.10)}
+    .choice.wrong{border-color:rgba(255,77,109,.75);background:rgba(255,77,109,.10)}
+    .badge{
+      font-size:10px;
+      padding:4px 8px;border-radius:999px;
+      border:1px solid rgba(255,255,255,.12);
+      color:var(--muted);
+      background: rgba(0,0,0,.22);
+      white-space:nowrap;
+    }
+    .status{
+      font-size:12px;line-height:1.4;margin-top:10px;
+      padding:10px 12px;border-radius:14px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.22);
+    }
+    .status.good{border-color:rgba(46,229,157,.55);background:rgba(46,229,157,.08)}
+    .status.bad{border-color:rgba(255,77,109,.55);background:rgba(255,77,109,.08)}
+    .status.warn{border-color:rgba(255,204,102,.55);background:rgba(255,204,102,.07)}
+    table{
+      width:100%;
+      border-collapse:separate;
+      border-spacing:0 10px;
+      font-size:12px;
+    }
+    th{color:var(--muted);font-weight:600;text-align:left;padding:0 10px 6px}
+    td{
+      padding:10px;
+      background: rgba(255,255,255,.03);
+      border:1px solid rgba(255,255,255,.08);
+    }
+    tr td:first-child{border-top-left-radius:12px;border-bottom-left-radius:12px}
+    tr td:last-child{border-top-right-radius:12px;border-bottom-right-radius:12px}
+    .right{text-align:right}
+    .center{text-align:center}
+    .mono{font-family:var(--mono)}
+    .hidden{display:none!important}
+    .footerNote{
+      margin-top:14px;
+      font-size:11px;
+      color:var(--muted);
+      line-height:1.5;
+    }
+    .kpi{
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap:10px;
+      margin-top:10px;
+    }
+    @media (max-width: 560px){.kpi{grid-template-columns:1fr}}
+    .k{
+      padding:12px;border-radius:16px;
+      border:1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.02);
+    }
+    .k .label{font-size:11px;color:var(--muted)}
+    .k .value{font-size:18px;font-weight:750;margin-top:4px}
+    .spark{
+      height:3px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:10px
+    }
+    .spark > div{
+      height:100%;
+      background: linear-gradient(90deg, rgba(124,92,255,.95), rgba(25,211,255,.9));
+      width:30%;
+    }
+    .toast{
+      position:fixed;left:50%;bottom:18px;transform:translateX(-50%);
+      background: rgba(10,10,13,.85);
+      border:1px solid rgba(255,255,255,.14);
+      padding:10px 12px;border-radius:999px;
+      font-size:12px;color:var(--text);
+      box-shadow: var(--shadow);
+      opacity:0;pointer-events:none;
+      transition:.25s opacity,.25s transform;
+    }
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(-6px)}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <h1>Multiple Choice Game v1 — Korean</h1>
+          <div class="sub">Black, sleek, modern • Offline-first (LocalStorage) • For English-native learners</div>
+        </div>
+      </div>
+      <nav id="nav"></nav>
+    </header>
+
+    <!-- PAGES -->
+    <div id="page-play" class="page">
+      <div class="grid">
+        <div class="card">
+          <h2>
+            <span>Play</span>
+            <span class="pill" id="modePill">Mode: Source Pool</span>
+          </h2>
+          <div class="divider"></div>
+
+          <div id="playEmpty" class="status warn hidden">
+            You need at least <b>4</b> words in the active pool to play. Add more words in <b>Add Words</b>.
+          </div>
+
+          <div id="quizArea">
+            <div class="row" style="justify-content:space-between;align-items:flex-start">
+              <div class="grow">
+                <div class="muted small">Choose the correct English meaning:</div>
+                <div class="korean" id="qKorean">—</div>
+                <div class="roman" id="qRoman">—</div>
+              </div>
+              <div class="row" style="justify-content:flex-end">
+                <button class="btn" id="btnSpeak" title="Speak Korean (ko-KR)">🔊 Speak</button>
+                <button class="btn" id="btnSkip" title="Skip (no points)">↻ New Question</button>
+              </div>
+            </div>
+
+            <div class="choices" id="choices"></div>
+
+            <div id="result" class="status hidden"></div>
+
+            <div class="divider"></div>
+
+            <div class="row">
+              <button class="btn primary" id="btnModeSource">Source Pool</button>
+              <button class="btn" id="btnModeDailyDifficult">Daily Difficult Quiz</button>
+              <div class="grow"></div>
+              <button class="btn good" id="btnReveal">Reveal Answer</button>
+            </div>
+
+            <div class="footerNote">
+              Tip: Wrong answers go to the <b>Difficult Words Pool</b> and appear in the <b>Daily Difficult Quiz</b> (regenerates every day).
+              Correctly answer a Source Pool word <b>10 times</b> → it moves to <b>Learned Words</b>.
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>
+            <span>Today</span>
+            <span class="pill" id="todayPill">—</span>
+          </h2>
+
+          <div class="kpi">
+            <div class="k">
+              <div class="label">Points (today)</div>
+              <div class="value" id="kpiPoints">0</div>
+              <div class="spark"><div id="sparkPoints"></div></div>
+            </div>
+            <div class="k">
+              <div class="label">New learned (today)</div>
+              <div class="value" id="kpiNewLearned">0</div>
+              <div class="spark"><div id="sparkLearned"></div></div>
+            </div>
+            <div class="k">
+              <div class="label">Difficult pool size</div>
+              <div class="value" id="kpiDifficult">0</div>
+              <div class="spark"><div id="sparkDiff"></div></div>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="row">
+            <button class="btn" id="btnResetToday">Reset today’s points</button>
+            <button class="btn danger" id="btnFactoryReset" title="Clears ALL data">Factory Reset</button>
+          </div>
+
+          <div class="footerNote">
+            Speech uses your browser’s <span class="mono">speechSynthesis</span> Korean voice if available. If you don’t hear audio, check
+            your device volume and ensure a Korean voice is installed.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="page-add" class="page hidden">
+      <div class="card">
+        <h2>
+          <span>Add Words</span>
+          <span class="pill">Add to Source Pool</span>
+        </h2>
+        <div class="divider"></div>
+
+        <div class="grid" style="grid-template-columns:1fr 1fr;">
+          <div>
+            <label for="inKorean">Korean (한글)</label>
+            <input id="inKorean" placeholder="예: 감사합니다" />
+
+            <label for="inEnglish">English meaning</label>
+            <input id="inEnglish" placeholder='e.g., "Thank you"' />
+
+            <label for="inRoman">Romanization (optional)</label>
+            <input id="inRoman" placeholder='e.g., "gamsahamnida" (auto if blank)' />
+
+            <div class="hint">
+              If romanization is blank, the game auto-generates a basic Revised Romanization.
+              (It’s a learner-friendly approximation.)
+            </div>
+
+            <div class="divider"></div>
+            <div class="row">
+              <button class="btn primary" id="btnAddOne">Add Word</button>
+              <button class="btn" id="btnAddClear">Clear</button>
+            </div>
+          </div>
+
+          <div>
+            <label for="bulk">Bulk add (one per line)</label>
+            <textarea id="bulk" placeholder="Format: Korean | English | Romanization(optional)
+예:
+안녕하세요 | Hello
+감사합니다 | Thank you | gamsahamnida"></textarea>
+            <div class="hint">
+              Use a pipe <span class="mono">|</span> to separate fields.
+              Romanization optional. Lines missing required fields are skipped.
+            </div>
+
+            <div class="divider"></div>
+            <div class="row">
+              <button class="btn primary" id="btnBulkAdd">Bulk Add</button>
+              <button class="btn" id="btnBulkExample">Insert Example</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="page-source" class="page hidden">
+      <div class="card">
+        <h2>
+          <span>Source Pool</span>
+          <span class="pill" id="sourceCountPill">—</span>
+        </h2>
+        <div class="divider"></div>
+        <div class="row">
+          <input id="sourceSearch" placeholder="Search Korean / English / romanization…" />
+          <button class="btn" id="btnExport">Export JSON</button>
+          <button class="btn" id="btnImport">Import JSON</button>
+          <input id="importFile" type="file" accept="application/json" class="hidden" />
+        </div>
+        <div class="divider"></div>
+        <div style="overflow:auto">
+          <table>
+            <thead>
+              <tr>
+                <th>Korean</th>
+                <th>Romanization</th>
+                <th>English</th>
+                <th class="center">Correct (lifetime)</th>
+                <th class="right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="sourceTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div id="page-diff" class="page hidden">
+      <div class="card">
+        <h2>
+          <span>Difficult Words</span>
+          <span class="pill" id="diffCountPill">—</span>
+        </h2>
+        <div class="divider"></div>
+        <div class="row">
+          <div class="grow small muted" id="diffInfo">—</div>
+          <button class="btn" id="btnRegenDaily">Regenerate today’s difficult quiz</button>
+          <button class="btn danger" id="btnClearDifficult">Clear difficult pool</button>
+        </div>
+        <div class="divider"></div>
+        <div style="overflow:auto">
+          <table>
+            <thead>
+              <tr>
+                <th>Korean</th>
+                <th>Romanization</th>
+                <th>English</th>
+                <th class="center">Wrong count</th>
+                <th class="right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="diffTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div id="page-learned" class="page hidden">
+      <div class="card">
+        <h2>
+          <span>Learned Words</span>
+          <span class="pill" id="learnedCountPill">—</span>
+        </h2>
+        <div class="divider"></div>
+        <div class="row">
+          <input id="learnedSearch" placeholder="Search learned words…" />
+          <div class="grow"></div>
+          <button class="btn danger" id="btnClearLearned">Clear learned list</button>
+        </div>
+        <div class="divider"></div>
+        <div style="overflow:auto">
+          <table>
+            <thead>
+              <tr>
+                <th>Learned date</th>
+                <th>Korean</th>
+                <th>Romanization</th>
+                <th>English</th>
+              </tr>
+            </thead>
+            <tbody id="learnedTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div id="page-daily" class="page hidden">
+      <div class="grid">
+        <div class="card">
+          <h2><span>New Learned Today</span><span class="pill" id="newLearnedPill">—</span></h2>
+          <div class="divider"></div>
+          <div style="overflow:auto">
+            <table>
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Korean</th>
+                  <th>Romanization</th>
+                  <th>English</th>
+                </tr>
+              </thead>
+              <tbody id="newLearnedTable"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2><span>Points By Day</span><span class="pill" id="pointsPill">—</span></h2>
+          <div class="divider"></div>
+          <div style="overflow:auto">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th class="right">Points</th>
+                </tr>
+              </thead>
+              <tbody id="pointsTable"></tbody>
+            </table>
+          </div>
+          <div class="footerNote">
+            Points increase only when you answer correctly. Skips don’t add points.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast">Saved</div>
+  </div>
+
+  <script>
+    /***********************
+     * Multiple Choice Game v1
+     * Single-file, GitHub-ready
+     * Storage: localStorage
+     ***********************/
+
+    // --------- Utilities ----------
+    const $ = (id) => document.getElementById(id);
+    const todayISO = () => new Date().toISOString().slice(0,10);
+    const nowTime = () => new Date().toISOString().slice(11,19);
+    const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+    function uid() {
+      return Math.random().toString(36).slice(2,10) + "-" + Date.now().toString(36);
+    }
+    function toast(msg){
+      const t = $("toast");
+      t.textContent = msg;
+      t.classList.add("show");
+      setTimeout(()=>t.classList.remove("show"), 1100);
+    }
+    function shuffle(arr){
+      const a = arr.slice();
+      for(let i=a.length-1;i>0;i--){
+        const j = Math.floor(Math.random()*(i+1));
+        [a[i],a[j]]=[a[j],a[i]];
+      }
+      return a;
+    }
+
+    // --------- Basic Hangul Romanization (approx. Revised Romanization) ----------
+    // This is an educational approximation. Full RR has context rules; we keep it simple & consistent.
+    const L = ["g","kk","n","d","tt","r","m","b","pp","s","ss","","j","jj","ch","k","t","p","h"];
+    const V = ["a","ae","ya","yae","eo","e","yeo","ye","o","wa","wae","oe","yo","u","wo","we","wi","yu","eu","ui","i"];
+    const T = ["","k","k","k","n","n","n","t","l","k","m","p","t","t","ng","t","t","p","t","t","t","t","t","t","k","t","p","t"];
+
+    function romanizeHangul(str){
+      let out = "";
+      for (const ch of str){
+        const code = ch.charCodeAt(0);
+        // Hangul syllables block
+        if(code >= 0xAC00 && code <= 0xD7A3){
+          const s = code - 0xAC00;
+          const li = Math.floor(s / (21*28));
+          const vi = Math.floor((s % (21*28)) / 28);
+          const ti = s % 28;
+          let r = (L[li] || "") + (V[vi] || "") + (T[ti] || "");
+          // a tiny smoothing for readability
+          r = r.replace(/^r/,"r"); // keep r
+          out += r;
+        } else {
+          // keep spaces/punctuation/latin
+          out += ch;
+        }
+      }
+      // spacing normalization
+      out = out.replace(/\s+/g," ").trim();
+      return out || "";
+    }
+
+    // --------- Speech (Seoul accent approximation) ----------
+    async function speakKorean(text){
+      if(!("speechSynthesis" in window)) {
+        toast("Speech not supported in this browser.");
+        return;
+      }
+      const synth = window.speechSynthesis;
+
+      // Some browsers load voices async
+      const getVoices = () => new Promise(resolve => {
+        let voices = synth.getVoices();
+        if(voices && voices.length) return resolve(voices);
+        synth.onvoiceschanged = () => resolve(synth.getVoices());
+        // fallback
+        setTimeout(()=>resolve(synth.getVoices()), 500);
+      });
+
+      const voices = await getVoices();
+      const ko = voices.find(v => (v.lang || "").toLowerCase().startsWith("ko")) ||
+                 voices.find(v => (v.name || "").toLowerCase().includes("korean"));
+
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = "ko-KR";
+      if(ko) u.voice = ko;
+
+      // Natural-ish settings (varies by voice)
+      u.rate = 0.95;
+      u.pitch = 1.0;
+      u.volume = 1.0;
+
+      synth.cancel();
+      synth.speak(u);
+    }
+
+    // --------- Storage ----------
+    const KEY = "mcg_v1_data";
+    function loadData(){
+      const raw = localStorage.getItem(KEY);
+      if(raw){
+        try { return JSON.parse(raw); } catch {}
+      }
+      return null;
+    }
+    function saveData(data){
+      localStorage.setItem(KEY, JSON.stringify(data));
+    }
+
+    function defaultSeed(){
+      // Topik I-ish common starter words (Korean | English)
+      const seedPairs = [
+        ["안녕하세요","Hello (polite)"],
+        ["감사합니다","Thank you"],
+        ["미안합니다","I’m sorry"],
+        ["네","Yes"],
+        ["아니요","No"],
+        ["괜찮아요","It’s okay / I’m fine"],
+        ["이름","Name"],
+        ["저","I (humble)"],
+        ["당신","You"],
+        ["사람","Person"],
+        ["학생","Student"],
+        ["선생님","Teacher"],
+        ["친구","Friend"],
+        ["가족","Family"],
+        ["집","House / Home"],
+        ["학교","School"],
+        ["회사","Company"],
+        ["시간","Time"],
+        ["오늘","Today"],
+        ["내일","Tomorrow"],
+        ["어제","Yesterday"],
+        ["지금","Now"],
+        ["여기","Here"],
+        ["거기","There"],
+        ["무엇","What"],
+        ["어디","Where"],
+        ["왜","Why"],
+        ["얼마","How much"],
+        ["물","Water"],
+        ["밥","Rice / meal"],
+        ["커피","Coffee"],
+        ["돈","Money"],
+        ["좋아요","Good / I like it"],
+        ["싫어요","I don’t like it"],
+        ["먹다","To eat"],
+        ["마시다","To drink"],
+        ["가다","To go"],
+        ["오다","To come"],
+        ["보다","To see / watch"],
+        ["하다","To do"],
+        ["주세요","Please give me…"],
+        ["화장실","Bathroom / restroom"]
+      ];
+
+      const words = seedPairs.map(([k,en])=>({
+        id: uid(),
+        korean: k,
+        english: en,
+        roman: romanizeHangul(k),
+        correct10: 0,              // correct counter toward learning
+        lifetimeCorrect: 0,
+        lifetimeSeen: 0,
+        createdAt: new Date().toISOString()
+      }));
+
+      return {
+        version: "v1",
+        createdAt: new Date().toISOString(),
+        sourcePool: words,
+        difficultPool: [],          // {id,korean,english,roman,wrongCount,addedAt}
+        learnedWords: [],           // {id,korean,english,roman,learnedDate,learnedAt}
+        pointsByDate: {},           // {YYYY-MM-DD: number}
+        learnedLogByDate: {},       // {YYYY-MM-DD: [{...word, learnedAt}]}
+        dailyDifficult: {           // daily quiz snapshot from difficult pool
+          date: "",
+          ids: []
+        }
+      };
+    }
+
+    let DATA = loadData();
+    if(!DATA){
+      DATA = defaultSeed();
+      saveData(DATA);
+    }
+
+    // --------- App State ----------
+    const TABS = [
+      { id:"play",   label:"Play" },
+      { id:"add",    label:"Add Words" },
+      { id:"source", label:"Source Pool" },
+      { id:"diff",   label:"Difficult Words" },
+      { id:"learned",label:"Learned Words" },
+      { id:"daily",  label:"Daily" }
+    ];
+    let currentTab = "play";
+
+    const MODE = {
+      SOURCE: "source",
+      DAILY_DIFFICULT: "daily_difficult"
+    };
+    let currentMode = MODE.SOURCE;
+
+    let currentQuestion = null; // {pool:'source'|'diff', wordId, choices:[{id, english}], correctId, revealed:boolean, answered:boolean}
+
+    // --------- Daily Difficult Quiz generation ----------
+    function ensureDailyDifficult(){
+      const d = todayISO();
+      if(DATA.dailyDifficult?.date !== d){
+        const ids = shuffle(DATA.difficultPool.map(w=>w.id));
+        // You can cap daily quiz size if you want (e.g. 20). Keep uncapped for now.
+        DATA.dailyDifficult = { date: d, ids };
+        saveData(DATA);
+      } else {
+        // Ensure ids still exist (if user deleted difficult words)
+        const set = new Set(DATA.difficultPool.map(w=>w.id));
+        const filtered = (DATA.dailyDifficult.ids || []).filter(id => set.has(id));
+        if(filtered.length !== (DATA.dailyDifficult.ids || []).length){
+          DATA.dailyDifficult.ids = filtered;
+          saveData(DATA);
+        }
+      }
+    }
+
+    // --------- Points + learned log ----------
+    function addPoint(){
+      const d = todayISO();
+      DATA.pointsByDate[d] = (DATA.pointsByDate[d] || 0) + 1;
+      saveData(DATA);
+    }
+
+    function markLearned(word){
+      // remove from source, push to learned
+      const d = todayISO();
+      const learnedEntry = {
+        id: word.id,
+        korean: word.korean,
+        english: word.english,
+        roman: word.roman,
+        learnedDate: d,
+        learnedAt: new Date().toISOString()
+      };
+      DATA.learnedWords.unshift(learnedEntry);
+      DATA.learnedLogByDate[d] = DATA.learnedLogByDate[d] || [];
+      DATA.learnedLogByDate[d].unshift(learnedEntry);
+
+      // remove from source pool
+      DATA.sourcePool = DATA.sourcePool.filter(w => w.id !== word.id);
+      saveData(DATA);
+    }
+
+    // --------- Difficult pool logic ----------
+    function addToDifficult(sourceWord){
+      const existing = DATA.difficultPool.find(w => w.id === sourceWord.id);
+      if(existing){
+        existing.wrongCount = (existing.wrongCount || 0) + 1;
+      } else {
+        DATA.difficultPool.unshift({
+          id: sourceWord.id,
+          korean: sourceWord.korean,
+          english: sourceWord.english,
+          roman: sourceWord.roman,
+          wrongCount: 1,
+          addedAt: new Date().toISOString()
+        });
+      }
+      saveData(DATA);
+      // daily difficult quiz should include it today if already generated
+      ensureDailyDifficult();
+      if(!DATA.dailyDifficult.ids.includes(sourceWord.id)){
+        DATA.dailyDifficult.ids.unshift(sourceWord.id);
+        saveData(DATA);
+      }
+    }
+
+    // --------- Quiz generation ----------
+    function getActivePool(){
+      ensureDailyDifficult();
+      if(currentMode === MODE.SOURCE){
+        return { name:"Source Pool", pool: DATA.sourcePool, poolKey:"source" };
+      }
+      // daily difficult = difficult words only, but ordered by daily snapshot
+      const map = new Map(DATA.difficultPool.map(w => [w.id, w]));
+      const ordered = (DATA.dailyDifficult.ids || []).map(id => map.get(id)).filter(Boolean);
+      return { name:"Daily Difficult Quiz", pool: ordered, poolKey:"diff" };
+    }
+
+    function canPlay(pool){
+      return pool && pool.length >= 4;
+    }
+
+    function makeQuestion(){
+      const { pool, poolKey } = getActivePool();
+      if(!canPlay(pool)){
+        currentQuestion = null;
+        renderPlay();
+        return;
+      }
+      const target = pool[Math.floor(Math.random()*pool.length)];
+      // build 3 wrong from same pool if possible, otherwise from source pool
+      const allCandidates = (poolKey==="diff" ? DATA.difficultPool : DATA.sourcePool);
+      const others = allCandidates.filter(w => w.id !== target.id);
+      const wrongs = shuffle(others).slice(0,3);
+      if(wrongs.length < 3){
+        // fallback: mix from learned words if needed (not ideal, but prevents dead-end)
+        const learnedFallback = shuffle(DATA.learnedWords).slice(0, 3-wrongs.length).map(w => ({
+          id: w.id, korean: w.korean, english: w.english, roman: w.roman
+        }));
+        while(wrongs.length < 3 && learnedFallback.length){
+          wrongs.push(learnedFallback.shift());
+        }
+      }
+
+      const choices = shuffle([
+        { id: target.id, english: target.english, correct:true },
+        ...wrongs.map(w => ({ id: w.id, english: w.english, correct:false }))
+      ]).slice(0,4);
+
+      currentQuestion = {
+        poolKey,
+        wordId: target.id,
+        korean: target.korean,
+        roman: target.roman || romanizeHangul(target.korean),
+        correctEnglish: target.english,
+        choices,
+        revealed: false,
+        answered: false
+      };
+
+      // bookkeeping
+      if(poolKey === "source"){
+        const w = DATA.sourcePool.find(x => x.id === target.id);
+        if(w) w.lifetimeSeen = (w.lifetimeSeen||0) + 1;
+      }
+      saveData(DATA);
+
+      renderPlay();
+      // auto speak after new question (gentle)
+      speakKorean(currentQuestion.korean);
+    }
+
+    function revealAnswer(){
+      if(!currentQuestion) return;
+      currentQuestion.revealed = true;
+      renderPlayResult("Answer revealed.", "warn");
+      // speak again for reinforcement
+      speakKorean(currentQuestion.korean);
+    }
+
+    function answer(choiceId){
+      if(!currentQuestion || currentQuestion.answered) return;
+      currentQuestion.answered = true;
+
+      const correct = (choiceId === currentQuestion.wordId);
+
+      // mark buttons visually
+      const choiceButtons = Array.from(document.querySelectorAll(".choice"));
+      for(const btn of choiceButtons){
+        const id = btn.getAttribute("data-id");
+        if(id === currentQuestion.wordId) btn.classList.add("correct");
+        else if(id === choiceId) btn.classList.add("wrong");
+        btn.disabled = true;
+      }
+
+      // Show explanation block + speak
+      const line1 = correct ? `✅ Correct! +1 point.` : `❌ Not quite. This word is added to your Difficult Words Pool.`;
+      const line2 = `<b>${escapeHTML(currentQuestion.korean)}</b> — <span class="mono">${escapeHTML(currentQuestion.roman)}</span>`;
+      const line3 = `Meaning: <b>${escapeHTML(currentQuestion.correctEnglish)}</b>`;
+      renderPlayResult(`${line1}<br>${line2}<br>${line3}`, correct ? "good" : "bad");
+
+      speakKorean(currentQuestion.korean);
+
+      if(correct){
+        addPoint();
+        if(currentQuestion.poolKey === "source"){
+          const w = DATA.sourcePool.find(x => x.id === currentQuestion.wordId);
+          if(w){
+            w.correct10 = (w.correct10||0) + 1;
+            w.lifetimeCorrect = (w.lifetimeCorrect||0) + 1;
+
+            if(w.correct10 >= 10){
+              markLearned(w);
+              toast("Learned! Moved to Learned Words.");
+              // if removed, we might now have fewer than 4; just proceed
+            } else {
+              saveData(DATA);
+            }
+          }
+        } else {
+          // In difficult mode, still count points only (no "learned" rule here unless you want).
+          saveData(DATA);
+        }
+      } else {
+        // Wrong: add to difficult pool (based on source if exists; if in diff mode, add/++ anyway)
+        const sourceWord = DATA.sourcePool.find(x=>x.id===currentQuestion.wordId)
+          || DATA.difficultPool.find(x=>x.id===currentQuestion.wordId)
+          || { id: currentQuestion.wordId, korean: currentQuestion.korean, english: currentQuestion.correctEnglish, roman: currentQuestion.roman };
+        addToDifficult(sourceWord);
+      }
+
+      renderSidebarKPIs();
+      renderTables();
+    }
+
+    // --------- Rendering ----------
+    function escapeHTML(s){
+      return (s ?? "").toString()
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+
+    function setTab(tabId){
+      currentTab = tabId;
+      for(const t of TABS){
+        const btn = document.querySelector(`[data-tab="${t.id}"]`);
+        if(btn) btn.classList.toggle("active", t.id === tabId);
+        const page = $(`page-${t.id}`);
+        if(page) page.classList.toggle("hidden", t.id !== tabId);
+      }
+      // refresh relevant views
+      renderAll();
+    }
+
+    function renderNav(){
+      const nav = $("nav");
+      nav.innerHTML = "";
+      for(const t of TABS){
+        const b = document.createElement("button");
+        b.className = "tab";
+        b.textContent = t.label;
+        b.setAttribute("data-tab", t.id);
+        b.addEventListener("click", () => setTab(t.id));
+        nav.appendChild(b);
+      }
+      setTab(currentTab);
+    }
+
+    function renderPlay(){
+      ensureDailyDifficult();
+
+      $("todayPill").textContent = todayISO();
+      $("modePill").textContent = `Mode: ${currentMode === MODE.SOURCE ? "Source Pool" : "Daily Difficult Quiz"}`;
+
+      const { pool } = getActivePool();
+      const playable = canPlay(pool);
+
+      $("playEmpty").classList.toggle("hidden", playable);
+      $("quizArea").classList.toggle("hidden", !playable);
+
+      if(!playable){
+        $("qKorean").textContent = "—";
+        $("qRoman").textContent = "—";
+        $("choices").innerHTML = "";
+        $("result").classList.add("hidden");
+        return;
+      }
+
+      if(!currentQuestion){
+        makeQuestion();
+        return;
+      }
+
+      $("qKorean").textContent = currentQuestion.korean;
+      $("qRoman").textContent = currentQuestion.roman;
+
+      // Choices
+      $("choices").innerHTML = "";
+      for(const c of currentQuestion.choices){
+        const btn = document.createElement("button");
+        btn.className = "choice";
+        btn.setAttribute("data-id", c.id);
+        btn.innerHTML = `<span>${escapeHTML(c.english)}</span><span class="badge">A</span>`;
+        btn.addEventListener("click", () => answer(c.id));
+        $("choices").appendChild(btn);
+      }
+
+      $("result").classList.add("hidden");
+      $("result").innerHTML = "";
+
+      renderSidebarKPIs();
+    }
+
+    function renderPlayResult(html, type){
+      const r = $("result");
+      r.className = `status ${type || ""}`.trim();
+      r.innerHTML = html;
+      r.classList.remove("hidden");
+    }
+
+    function renderSidebarKPIs(){
+      const d = todayISO();
+      const points = DATA.pointsByDate[d] || 0;
+      const newLearned = (DATA.learnedLogByDate[d] || []).length;
+      const diff = DATA.difficultPool.length;
+
+      $("kpiPoints").textContent = points;
+      $("kpiNewLearned").textContent = newLearned;
+      $("kpiDifficult").textContent = diff;
+
+      // tiny progress bars (scaled)
+      $("sparkPoints").style.width = clamp(points*8, 8, 100) + "%";
+      $("sparkLearned").style.width = clamp(newLearned*14, 8, 100) + "%";
+      $("sparkDiff").style.width = clamp(diff*5, 8, 100) + "%";
+    }
+
+    function renderSourceTable(){
+      const q = $("sourceSearch").value.trim().toLowerCase();
+      const rows = (DATA.sourcePool || [])
+        .slice()
+        .sort((a,b)=> (b.correct10||0) - (a.correct10||0))
+        .filter(w => {
+          if(!q) return true;
+          return (w.korean||"").toLowerCase().includes(q)
+            || (w.english||"").toLowerCase().includes(q)
+            || (w.roman||"").toLowerCase().includes(q);
+        });
+
+      $("sourceCountPill").textContent = `${DATA.sourcePool.length} words`;
+
+      const tb = $("sourceTable");
+      tb.innerHTML = "";
+      for(const w of rows){
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td><b>${escapeHTML(w.korean)}</b></td>
+          <td class="mono">${escapeHTML(w.roman || romanizeHangul(w.korean))}</td>
+          <td>${escapeHTML(w.english)}</td>
+          <td class="center">${escapeHTML(w.lifetimeCorrect || 0)} <span class="muted">(${escapeHTML(w.correct10||0)}/10)</span></td>
+          <td class="right">
+            <button class="btn" data-act="speak" data-id="${w.id}">🔊</button>
+            <button class="btn danger" data-act="del" data-id="${w.id}">Delete</button>
+          </td>
+        `;
+        tb.appendChild(tr);
+      }
+
+      tb.querySelectorAll("button").forEach(btn=>{
+        const act = btn.getAttribute("data-act");
+        const id = btn.getAttribute("data-id");
+        if(act === "del"){
+          btn.addEventListener("click", () => {
+            const w = DATA.sourcePool.find(x=>x.id===id);
+            if(!w) return;
+            if(confirm(`Delete from Source Pool?\n\n${w.korean} — ${w.english}`)){
+              DATA.sourcePool = DATA.sourcePool.filter(x=>x.id!==id);
+              saveData(DATA);
+              toast("Deleted");
+              // if deleting current question, refresh question
+              if(currentQuestion?.wordId === id && currentMode === MODE.SOURCE){
+                currentQuestion = null;
+              }
+              renderAll();
+            }
+          });
+        } else if(act === "speak"){
+          btn.addEventListener("click", () => {
+            const w = DATA.sourcePool.find(x=>x.id===id);
+            if(w) speakKorean(w.korean);
+          });
+        }
+      });
+    }
+
+    function renderDiffTable(){
+      ensureDailyDifficult();
+      $("diffCountPill").textContent = `${DATA.difficultPool.length} words`;
+      $("diffInfo").innerHTML = `Daily quiz date: <b>${escapeHTML(DATA.dailyDifficult.date || "—")}</b> • Items in today’s quiz: <b>${escapeHTML((DATA.dailyDifficult.ids||[]).length)}</b>`;
+
+      const tb = $("diffTable");
+      tb.innerHTML = "";
+      const rows = (DATA.difficultPool || [])
+        .slice()
+        .sort((a,b)=>(b.wrongCount||0)-(a.wrongCount||0));
+
+      for(const w of rows){
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td><b>${escapeHTML(w.korean)}</b></td>
+          <td class="mono">${escapeHTML(w.roman || romanizeHangul(w.korean))}</td>
+          <td>${escapeHTML(w.english)}</td>
+          <td class="center">${escapeHTML(w.wrongCount || 0)}</td>
+          <td class="right">
+            <button class="btn" data-act="speak" data-id="${w.id}">🔊</button>
+            <button class="btn danger" data-act="del" data-id="${w.id}">Remove</button>
+          </td>
+        `;
+        tb.appendChild(tr);
+      }
+
+      tb.querySelectorAll("button").forEach(btn=>{
+        const act = btn.getAttribute("data-act");
+        const id = btn.getAttribute("data-id");
+        if(act === "del"){
+          btn.addEventListener("click", () => {
+            const w = DATA.difficultPool.find(x=>x.id===id);
+            if(!w) return;
+            if(confirm(`Remove from Difficult Words?\n\n${w.korean} — ${w.english}`)){
+              DATA.difficultPool = DATA.difficultPool.filter(x=>x.id!==id);
+              // also remove from daily list
+              ensureDailyDifficult();
+              DATA.dailyDifficult.ids = (DATA.dailyDifficult.ids||[]).filter(x=>x!==id);
+              saveData(DATA);
+              toast("Removed");
+              if(currentQuestion?.wordId === id && currentMode === MODE.DAILY_DIFFICULT){
+                currentQuestion = null;
+              }
+              renderAll();
+            }
+          });
+        } else if(act === "speak"){
+          btn.addEventListener("click", () => {
+            const w = DATA.difficultPool.find(x=>x.id===id);
+            if(w) speakKorean(w.korean);
+          });
+        }
+      });
+    }
+
+    function renderLearnedTable(){
+      const q = $("learnedSearch").value.trim().toLowerCase();
+      const rows = (DATA.learnedWords || [])
+        .filter(w=>{
+          if(!q) return true;
+          return (w.korean||"").toLowerCase().includes(q)
+            || (w.english||"").toLowerCase().includes(q)
+            || (w.roman||"").toLowerCase().includes(q)
+            || (w.learnedDate||"").includes(q);
+        });
+
+      $("learnedCountPill").textContent = `${DATA.learnedWords.length} words`;
+
+      const tb = $("learnedTable");
+      tb.innerHTML = "";
+      for(const w of rows){
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td class="mono">${escapeHTML(w.learnedDate)}</td>
+          <td><b>${escapeHTML(w.korean)}</b></td>
+          <td class="mono">${escapeHTML(w.roman || romanizeHangul(w.korean))}</td>
+          <td>${escapeHTML(w.english)}</td>
+        `;
+        tb.appendChild(tr);
+      }
+    }
+
+    function renderDailyPage(){
+      const d = todayISO();
+      const learnedToday = (DATA.learnedLogByDate[d] || []);
+      $("newLearnedPill").textContent = `${learnedToday.length} words`;
+      const tb = $("newLearnedTable");
+      tb.innerHTML = "";
+      for(const w of learnedToday){
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td class="mono">${escapeHTML((w.learnedAt||"").slice(11,19) || nowTime())}</td>
+          <td><b>${escapeHTML(w.korean)}</b></td>
+          <td class="mono">${escapeHTML(w.roman || romanizeHangul(w.korean))}</td>
+          <td>${escapeHTML(w.english)}</td>
+        `;
+        tb.appendChild(tr);
+      }
+
+      // points by day table (latest first)
+      const ptb = $("pointsTable");
+      ptb.innerHTML = "";
+      const entries = Object.entries(DATA.pointsByDate || {})
+        .sort((a,b)=> b[0].localeCompare(a[0]));
+      $("pointsPill").textContent = `${entries.length} days tracked`;
+      for(const [date, pts] of entries){
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td class="mono">${escapeHTML(date)}</td>
+          <td class="right"><b>${escapeHTML(pts)}</b></td>
+        `;
+        ptb.appendChild(tr);
+      }
+    }
+
+    function renderTables(){
+      // render only if page visible, but cheap enough to do all
+      if(!$("page-source").classList.contains("hidden")) renderSourceTable();
+      if(!$("page-diff").classList.contains("hidden")) renderDiffTable();
+      if(!$("page-learned").classList.contains("hidden")) renderLearnedTable();
+      if(!$("page-daily").classList.contains("hidden")) renderDailyPage();
+    }
+
+    function renderAll(){
+      // always keep play KPIs current
+      renderPlay();
+      renderTables();
+      renderSidebarKPIs();
+    }
+
+    // --------- Actions / Handlers ----------
+    function setMode(mode){
+      currentMode = mode;
+      currentQuestion = null;
+      renderAll();
+      toast(mode === MODE.SOURCE ? "Mode: Source Pool" : "Mode: Daily Difficult");
+    }
+
+    function addWord(korean, english, roman){
+      const k = (korean||"").trim();
+      const e = (english||"").trim();
+      if(!k || !e) return false;
+
+      // prevent exact duplicates (korean+english)
+      const dupe = DATA.sourcePool.find(w => w.korean === k && w.english === e);
+      if(dupe) return false;
+
+      const r = (roman||"").trim() || romanizeHangul(k);
+      DATA.sourcePool.unshift({
+        id: uid(),
+        korean: k,
+        english: e,
+        roman: r,
+        correct10: 0,
+        lifetimeCorrect: 0,
+        lifetimeSeen: 0,
+        createdAt: new Date().toISOString()
+      });
+      saveData(DATA);
+      return true;
+    }
+
+    // Export/Import JSON
+    function exportJSON(){
+      const blob = new Blob([JSON.stringify(DATA,null,2)], {type:"application/json"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "multiple-choice-game-v1-data.json";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+    function importJSONFile(file){
+      const reader = new FileReader();
+      reader.onload = () => {
+        try{
+          const obj = JSON.parse(reader.result);
+          if(!obj || typeof obj !== "object") throw new Error("bad");
+          // minimal sanity
+          if(!Array.isArray(obj.sourcePool) || !Array.isArray(obj.learnedWords) || !Array.isArray(obj.difficultPool)){
+            throw new Error("missing arrays");
+          }
+          DATA = obj;
+          saveData(DATA);
+          currentQuestion = null;
+          toast("Imported");
+          renderAll();
+        }catch{
+          alert("Invalid JSON file for this game.");
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    // --------- Wire UI ----------
+    function wire(){
+      // Play page buttons
+      $("btnSpeak").addEventListener("click", ()=> {
+        if(currentQuestion) speakKorean(currentQuestion.korean);
+      });
+      $("btnSkip").addEventListener("click", ()=> {
+        currentQuestion = null;
+        makeQuestion();
+      });
+      $("btnReveal").addEventListener("click", revealAnswer);
+
+      $("btnModeSource").addEventListener("click", ()=>setMode(MODE.SOURCE));
+      $("btnModeDailyDifficult").addEventListener("click", ()=>setMode(MODE.DAILY_DIFFICULT));
+
+      $("btnResetToday").addEventListener("click", ()=>{
+        const d = todayISO();
+        if(confirm(`Reset points for ${d}?`)){
+          DATA.pointsByDate[d] = 0;
+          saveData(DATA);
+          toast("Reset");
+          renderAll();
+        }
+      });
+
+      $("btnFactoryReset").addEventListener("click", ()=>{
+        if(confirm("Factory Reset will DELETE ALL your words, progress, and history. Continue?")){
+          DATA = defaultSeed();
+          saveData(DATA);
+          currentQuestion = null;
+          currentMode = MODE.SOURCE;
+          toast("Reset complete");
+          renderAll();
+        }
+      });
+
+      // Add page
+      $("btnAddOne").addEventListener("click", ()=>{
+        const k = $("inKorean").value;
+        const e = $("inEnglish").value;
+        const r = $("inRoman").value;
+        const ok = addWord(k,e,r);
+        if(ok){
+          $("inKorean").value="";
+          $("inEnglish").value="";
+          $("inRoman").value="";
+          toast("Added");
+          renderAll();
+        }else{
+          toast("Skipped (missing fields or duplicate)");
+        }
+      });
+      $("btnAddClear").addEventListener("click", ()=>{
+        $("inKorean").value="";
+        $("inEnglish").value="";
+        $("inRoman").value="";
+        $("bulk").value="";
+        toast("Cleared");
+      });
+
+      $("btnBulkExample").addEventListener("click", ()=>{
+        $("bulk").value =
+`안녕하세요 | Hello
+감사합니다 | Thank you | gamsahamnida
+괜찮아요 | It's okay / I'm fine
+화장실 | Bathroom / restroom`;
+      });
+
+      $("btnBulkAdd").addEventListener("click", ()=>{
+        const lines = $("bulk").value.split("\n").map(s=>s.trim()).filter(Boolean);
+        let added = 0, skipped = 0;
+        for(const line of lines){
+          const parts = line.split("|").map(s=>s.trim());
+          const k = parts[0] || "";
+          const e = parts[1] || "";
+          const r = parts[2] || "";
+          const ok = addWord(k,e,r);
+          if(ok) added++; else skipped++;
+        }
+        toast(`Bulk: added ${added}, skipped ${skipped}`);
+        renderAll();
+      });
+
+      // Source page
+      $("sourceSearch").addEventListener("input", renderSourceTable);
+      $("btnExport").addEventListener("click", exportJSON);
+      $("btnImport").addEventListener("click", ()=> $("importFile").click());
+      $("importFile").addEventListener("change", (ev)=>{
+        const f = ev.target.files?.[0];
+        if(f) importJSONFile(f);
+        ev.target.value = "";
+      });
+
+      // Difficult page
+      $("btnRegenDaily").addEventListener("click", ()=>{
+        const d = todayISO();
+        const ids = shuffle(DATA.difficultPool.map(w=>w.id));
+        DATA.dailyDifficult = { date:d, ids };
+        saveData(DATA);
+        toast("Regenerated");
+        if(currentMode === MODE.DAILY_DIFFICULT){
+          currentQuestion = null;
+        }
+        renderAll();
+      });
+      $("btnClearDifficult").addEventListener("click", ()=>{
+        if(confirm("Clear the entire Difficult Words Pool?")){
+          DATA.difficultPool = [];
+          ensureDailyDifficult();
+          DATA.dailyDifficult.ids = [];
+          saveData(DATA);
+          toast("Cleared");
+          if(currentMode === MODE.DAILY_DIFFICULT){
+            currentQuestion = null;
+          }
+          renderAll();
+        }
+      });
+
+      // Learned page
+      $("learnedSearch").addEventListener("input", renderLearnedTable);
+      $("btnClearLearned").addEventListener("click", ()=>{
+        if(confirm("Clear the Learned Words list? (Does not restore them to Source Pool)")){
+          DATA.learnedWords = [];
+          DATA.learnedLogByDate = {};
+          saveData(DATA);
+          toast("Cleared");
+          renderAll();
+        }
+      });
+    }
+
+    // --------- Start ----------
+    renderNav();
+    wire();
+    ensureDailyDifficult();
+    renderAll();
+
+    // Make sure we always have a question ready on Play tab
+    if(currentTab === "play" && !currentQuestion){
+      makeQuestion();
+    }
+
+    // Regenerate daily difficult if the date changes while page is open
+    setInterval(()=>{
+      const d = todayISO();
+      if(DATA.dailyDifficult?.date !== d){
+        ensureDailyDifficult();
+        if(currentMode === MODE.DAILY_DIFFICULT){
+          currentQuestion = null;
+          renderAll();
+        } else {
+          renderSidebarKPIs();
+          renderTables();
+        }
+      }
+    }, 30_000);
+  </script>
+</body>
+</html>
