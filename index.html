@@ -176,7 +176,23 @@
       min-height:44px;
       display:flex;align-items:center;justify-content:space-between;gap:10px;
       font-size:13px;
-      color: #ffffff; /* ✅ force white text */
+     /* Make the 4 option texts pure white */
+      .choice .option-text{
+      color: #ffffff !important;
+    }
+
+    /* Keep option text white even when disabled (some browsers gray it out) */
+    .choice:disabled .option-text{
+    color: #ffffff !important;
+    opacity: 1 !important;
+    -webkit-text-fill-color: #ffffff !important; /* Safari/Chrome */
+    }
+
+    /* Optional: keep the A/B/C/D badge muted */
+    .choice .badge{
+    color: var(--muted) !important;
+    }
+
     }
     .choice.correct{border-color:rgba(46,229,157,.7);background:rgba(46,229,157,.10)}
     .choice.wrong{border-color:rgba(255,77,109,.75);background:rgba(255,77,109,.10)}
@@ -311,7 +327,7 @@
 
             <div class="footerNote">
               Tip: Wrong answers go to the <b>Difficult Words Pool</b> and appear in the <b>Daily Difficult Quiz</b> (regenerates every day).
-              Correctly answer a Source Pool word <b>10 times</b> → it moves to <b>Learned Words</b>.
+              Correctly answer a Source Pool word <b>5 times</b> → it moves to <b>Learned Words</b>.
             </div>
           </div>
         </div>
@@ -921,7 +937,7 @@
             w.correct10 = (w.correct10||0) + 1;
             w.lifetimeCorrect = (w.lifetimeCorrect||0) + 1;
 
-            if(w.correct10 >= 10){
+            if(w.correct10 >= 5){
               markLearned(w);
               toast("Learned! Moved to Learned Words.");
               // if removed, we might now have fewer than 4; just proceed
@@ -1011,11 +1027,15 @@
 
       // Choices
       $("choices").innerHTML = "";
-      for(const c of currentQuestion.choices){
+      const labels = ["A", "B", "C", "D"];
+
+      currentQuestion.choices.forEach((c, idx) => {
         const btn = document.createElement("button");
         btn.className = "choice";
         btn.setAttribute("data-id", c.id);
-        btn.innerHTML = `<span>${escapeHTML(c.english)}</span><span class="badge">A</span>`;
+        btn.innerHTML =
+          `<span class="option-text">${escapeHTML(c.english)}</span>` +
+          `<span class="badge">${labels[idx] || ""}</span>`;
         btn.addEventListener("click", () => answer(c.id));
         $("choices").appendChild(btn);
       }
@@ -1071,7 +1091,7 @@
           <td><b>${escapeHTML(w.korean)}</b></td>
           <td class="mono">${escapeHTML(w.roman || romanizeHangul(w.korean))}</td>
           <td>${escapeHTML(w.english)}</td>
-          <td class="center">${escapeHTML(w.lifetimeCorrect || 0)} <span class="muted">(${escapeHTML(w.correct10||0)}/10)</span></td>
+          <td class="center">${escapeHTML(w.lifetimeCorrect || 0)} <span class="muted">(${escapeHTML(w.correct10||0)}/5)</span></td>
           <td class="right">
             <button class="btn" data-act="speak" data-id="${w.id}">🔊</button>
             <button class="btn danger" data-act="del" data-id="${w.id}">Delete</button>
@@ -1463,4 +1483,5 @@
   </script>
 </body>
 </html>
+
 
