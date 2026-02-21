@@ -1412,7 +1412,8 @@ function saveData(data){
         try {
           await signOut(auth);
         } catch (e) {
-          c:contentReference[oaicite:11]{index=11}oast("Sign-out failed");
+          console.warn(e);
+          toast("Sign-out failed");
         }
       });
       
@@ -1610,6 +1611,7 @@ function saveData(data){
   </script>
 </body>
 </html>
+
 
 
 
