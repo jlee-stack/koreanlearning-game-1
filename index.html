@@ -1103,21 +1103,21 @@ function saveData(data){
 
       // Choices
       $("choices").innerHTML = "";
-      for(const c of currentQuestion.choices){
+      
+      let i = 0;
+      for (const c of currentQuestion.choices) {
         const btn = document.createElement("button");
         btn.className = "choice";
         btn.setAttribute("data-id", c.id);
-        const label = String.fromCharCode(65 + i); // A, B, C, D
+      
+        const label = String.fromCharCode(65 + i); // A,B,C,D
         btn.innerHTML = `<span>${escapeHTML(c.english)}</span><span class="badge">${label}</span>`;
+      
         btn.addEventListener("click", () => answer(c.id));
         $("choices").appendChild(btn);
+      
+        i++;
       }
-
-      $("result").classList.add("hidden");
-      $("result").innerHTML = "";
-
-      renderSidebarKPIs();
-    }
 
     function renderPlayResult(html, type){
       const r = $("result");
@@ -1612,6 +1612,7 @@ function saveData(data){
   </script>
 </body>
 </html>
+
 
 
 
