@@ -315,6 +315,8 @@
             <div class="row">
               <button class="btn primary" id="btnModeSource">Source Pool</button>
               <button class="btn" id="btnModeDailyDifficult">Daily Difficult Quiz</button>
+              <button class="btn" id="btnModeTagQuiz">Tag Quiz</button>
+              <select id="tagSelect" style="max-width:220px" class="hidden"></select>
               <div class="grow"></div>
               <button class="btn good" id="btnReveal">Reveal Answer</button>
             </div>
@@ -322,6 +324,7 @@
             <div class="footerNote">
               Tip: Wrong answers go to the <b>Difficult Words Pool</b> and appear in the <b>Daily Difficult Quiz</b> (regenerates every day).
               Correctly answer a Source Pool word <b>5 times</b> → it moves to <b>Learned Words</b>.
+              Use <b>Tag Quizzes</b> for standalone drills that don’t affect your main progress.
             </div>
           </div>
         </div>
@@ -384,7 +387,14 @@
             <label for="inRoman">Romanization (optional)</label>
             <input id="inRoman" placeholder='e.g., "gamsahamnida" (auto if blank)' />
 
-            <div class="hint">
+            
+<label for="inTag">Tag (optional)</label>
+<input id="inTag" placeholder='e.g., "Food", "Grammar", "Taxi"' />
+<div class="hint">
+  Tags help you create side quizzes. Leave blank if you don’t need it.
+</div>
+
+<div class="hint">
               If romanization is blank, the game auto-generates a basic Revised Romanization.
               (It’s a learner-friendly approximation.)
             </div>
@@ -398,10 +408,10 @@
 
           <div>
             <label for="bulk">Bulk add (one per line)</label>
-            <textarea id="bulk" placeholder="Format: Korean | English | Romanization(optional)
+            <textarea id="bulk" placeholder="Format: Korean | English | Romanization(optional) | Tag(optional)
 예:
 안녕하세요 | Hello
-감사합니다 | Thank you | gamsahamnida"></textarea>
+감사합니다 | Thank you | gamsahamnida | Greetings"></textarea>
             <div class="hint">
               Use a pipe <span class="mono">|</span> to separate fields.
               Romanization optional. Lines missing required fields are skipped.
@@ -438,6 +448,7 @@
                 <th>Korean</th>
                 <th>Romanization</th>
                 <th>English</th>
+                <th>Tag</th>
                 <th class="center">Correct (lifetime)</th>
                 <th class="right">Actions</th>
               </tr>
@@ -547,6 +558,69 @@
         </div>
       </div>
     </div>
+
+
+<div id="page-tags" class="page hidden">
+  <div class="card">
+    <h2>
+      <span>Tag Quizzes</span>
+      <span class="pill" id="tagCountPill">—</span>
+    </h2>
+    <div class="divider"></div>
+
+    <div class="row">
+      <div class="grow small muted">
+        Create a standalone side quiz from tags in your Source Pool. Tag quiz progress is separate from your main quizzes.
+      </div>
+      <button class="btn danger" id="btnClearTagQuizzes" title="Clears ONLY tag quiz progress (does not change your words)">Clear tag quiz progress</button>
+    </div>
+
+    <div class="divider"></div>
+
+    <div style="overflow:auto">
+      <table>
+        <thead>
+          <tr>
+            <th>Tag</th>
+            <th class="center">Words</th>
+            <th class="center">Progress</th>
+            <th class="right">Action</th>
+          </tr>
+        </thead>
+        <tbody id="tagTable"></tbody>
+      </table>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="row" style="justify-content:space-between;align-items:flex-start">
+      <div class="grow">
+        <div class="muted small">Most missed (selected tag quiz)</div>
+      </div>
+      <select id="tagRankSelect" style="max-width:240px"></select>
+    </div>
+
+    <div style="overflow:auto;margin-top:10px">
+      <table>
+        <thead>
+          <tr>
+            <th>Korean</th>
+            <th>Romanization</th>
+            <th>English</th>
+            <th class="center">Wrong</th>
+            <th class="center">Correct</th>
+          </tr>
+        </thead>
+        <tbody id="tagRankTable"></tbody>
+      </table>
+    </div>
+
+    <div class="footerNote">
+      Rule: A tag quiz repeats until <b>every</b> word in that quiz is answered correctly <b>5 times</b>.
+      Questions are biased toward words you miss more often.
+    </div>
+  </div>
+</div>
 
     <div class="toast" id="toast">Saved</div>
   </div>
@@ -795,7 +869,8 @@ function saveData(data){
         correct10: 0,              // correct counter toward learning
         lifetimeCorrect: 0,
         lifetimeSeen: 0,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        tag: ""
       }));
 
       return {
@@ -814,27 +889,53 @@ function saveData(data){
     }
 
     let DATA = loadData();
-    if(!DATA){
-      DATA = defaultSeed();
-      saveData(DATA);
-    }
 
-    // --------- App State ----------
+if(!DATA){
+  DATA = defaultSeed();
+  saveData(DATA);
+}
+
+// --------- Data migrations / defaults ----------
+// Ensure new fields exist on older saves
+function migrateData(){
+  DATA.version = DATA.version || "v1";
+  DATA.sourcePool = Array.isArray(DATA.sourcePool) ? DATA.sourcePool : [];
+  DATA.difficultPool = Array.isArray(DATA.difficultPool) ? DATA.difficultPool : [];
+  DATA.learnedWords = Array.isArray(DATA.learnedWords) ? DATA.learnedWords : [];
+  DATA.pointsByDate = DATA.pointsByDate || {};
+  DATA.learnedLogByDate = DATA.learnedLogByDate || {};
+  DATA.dailyDifficult = DATA.dailyDifficult || { date:"", ids:[] };
+
+  // Tag support
+  for(const w of DATA.sourcePool){
+    if(w.tag === undefined) w.tag = "";
+  }
+  DATA.tagQuizzes = DATA.tagQuizzes || {}; // { [tag]: { tag, createdAt, ids:[], items:{id:{...}}, stats:{id:{correct,wrong,seen}} } }
+
+  saveData(DATA);
+}
+migrateData();
+
+// --------- App State ----------
+
     const TABS = [
       { id:"play",   label:"Play" },
       { id:"add",    label:"Add Words" },
       { id:"source", label:"Source Pool" },
       { id:"diff",   label:"Difficult Words" },
       { id:"learned",label:"Learned Words" },
-      { id:"daily",  label:"Daily" }
+      { id:"daily",  label:"Daily" },
+      { id:"tags",  label:"Tag Quizzes" }
     ];
     let currentTab = "play";
 
     const MODE = {
       SOURCE: "source",
-      DAILY_DIFFICULT: "daily_difficult"
+      DAILY_DIFFICULT: "daily_difficult",
+      TAG: "tag"
     };
     let currentMode = MODE.SOURCE;
+    let currentTag = "";
 
     let currentQuestion = null; // {pool:'source'|'diff', wordId, choices:[{id, english}], correctId, revealed:boolean, answered:boolean}
 
@@ -908,71 +1009,224 @@ function saveData(data){
       }
     }
 
-    // --------- Quiz generation ----------
-    function getActivePool(){
-      ensureDailyDifficult();
-      if(currentMode === MODE.SOURCE){
-        return { name:"Source Pool", pool: DATA.sourcePool, poolKey:"source" };
-      }
-      // daily difficult = difficult words only, but ordered by daily snapshot
-      const map = new Map(DATA.difficultPool.map(w => [w.id, w]));
-      const ordered = (DATA.dailyDifficult.ids || []).map(id => map.get(id)).filter(Boolean);
-      return { name:"Daily Difficult Quiz", pool: ordered, poolKey:"diff" };
-    }
+    
+// --------- Tag Quiz (standalone side quizzes) ----------
+function normTag(tag){
+  return (tag || "").toString().trim();
+}
 
-    function canPlay(pool){
+function getTagsInSource(){
+  const set = new Set();
+  for(const w of (DATA.sourcePool||[])){
+    const tg = normTag(w.tag);
+    if(tg) set.add(tg);
+  }
+  return Array.from(set).sort((a,b)=>a.localeCompare(b));
+}
+
+function ensureTagQuiz(tag){
+  const tg = normTag(tag);
+  if(!tg) return null;
+  DATA.tagQuizzes = DATA.tagQuizzes || {};
+  if(DATA.tagQuizzes[tg]) return DATA.tagQuizzes[tg];
+
+  // Snapshot items currently in Source Pool with this tag (one-time quiz)
+  const tagged = (DATA.sourcePool||[]).filter(w => normTag(w.tag) === tg);
+  const items = {};
+  const ids = [];
+  const stats = {};
+  for(const w of tagged){
+    ids.push(w.id);
+    items[w.id] = { id:w.id, korean:w.korean, english:w.english, roman:w.roman || romanizeHangul(w.korean) };
+    stats[w.id] = { correct:0, wrong:0, seen:0 };
+  }
+
+  const q = {
+    tag: tg,
+    createdAt: new Date().toISOString(),
+    ids,
+    items,
+    stats
+  };
+  DATA.tagQuizzes[tg] = q;
+  saveData(DATA);
+  return q;
+}
+
+function startTagQuiz(tag){
+  const q = ensureTagQuiz(tag);
+  if(!q || !q.ids.length){
+    toast("No words found for that tag");
+    return;
+  }
+  currentMode = MODE.TAG;
+  currentTag = q.tag;
+  currentQuestion = null;
+  setTab("play");
+  toast(`${currentTag} Quiz`);
+}
+
+function tagQuizProgress(tag){
+  const q = DATA.tagQuizzes?.[tag];
+  if(!q) return { mastered:0, total:0 };
+  const total = q.ids.length;
+  let mastered = 0;
+  for(const id of q.ids){
+    const st = q.stats?.[id] || { correct:0 };
+    if((st.correct||0) >= 5) mastered++;
+  }
+  return { mastered, total };
+}
+
+function isTagQuizComplete(tag){
+  const p = tagQuizProgress(tag);
+  return p.total > 0 && p.mastered === p.total;
+}
+
+// --------- Quiz generation ----------
+    function getActivePool(){
+  ensureDailyDifficult();
+
+  if(currentMode === MODE.SOURCE){
+    return { name:"Source Pool", pool: DATA.sourcePool, poolKey:"source" };
+  }
+
+  if(currentMode === MODE.DAILY_DIFFICULT){
+    // daily difficult = difficult words only, but ordered by daily snapshot
+    const map = new Map(DATA.difficultPool.map(w => [w.id, w]));
+    const ordered = (DATA.dailyDifficult.ids || []).map(id => map.get(id)).filter(Boolean);
+    return { name:"Daily Difficult Quiz", pool: ordered, poolKey:"diff" };
+  }
+
+  // Tag quiz (standalone)
+  const q = DATA.tagQuizzes?.[currentTag];
+  const items = q ? (q.ids || []).map(id => q.items?.[id]).filter(Boolean) : [];
+  return { name:`${currentTag || "Tag"} Quiz`, pool: items, poolKey:"tag" };
+}
+
+    function canPlay(pool, poolKey){
+      if(poolKey === "tag") return pool && pool.length >= 1;
       return pool && pool.length >= 4;
     }
 
     function makeQuestion(){
-      const { pool, poolKey } = getActivePool();
-      if(!canPlay(pool)){
-        currentQuestion = null;
-        renderPlay();
-        return;
-      }
-      const target = pool[Math.floor(Math.random()*pool.length)];
-      // build 3 wrong from same pool if possible, otherwise from source pool
-      const allCandidates = (poolKey==="diff" ? DATA.difficultPool : DATA.sourcePool);
-      const others = allCandidates.filter(w => w.id !== target.id);
-      const wrongs = shuffle(others).slice(0,3);
-      if(wrongs.length < 3){
-        // fallback: mix from learned words if needed (not ideal, but prevents dead-end)
-        const learnedFallback = shuffle(DATA.learnedWords).slice(0, 3-wrongs.length).map(w => ({
-          id: w.id, korean: w.korean, english: w.english, roman: w.roman
-        }));
-        while(wrongs.length < 3 && learnedFallback.length){
-          wrongs.push(learnedFallback.shift());
-        }
-      }
+  const { pool, poolKey } = getActivePool();
+  if(!canPlay(pool, poolKey)){
+    currentQuestion = null;
+    renderPlay();
+    return;
+  }
 
-      const choices = shuffle([
-        { id: target.id, english: target.english, correct:true },
-        ...wrongs.map(w => ({ id: w.id, english: w.english, correct:false }))
-      ]).slice(0,4);
+  // Pick a target
+  let target = null;
 
-      currentQuestion = {
-        poolKey,
-        wordId: target.id,
-        korean: target.korean,
-        roman: target.roman || romanizeHangul(target.korean),
-        correctEnglish: target.english,
-        choices,
-        revealed: false,
-        answered: false
-      };
-
-      // bookkeeping
-      if(poolKey === "source"){
-        const w = DATA.sourcePool.find(x => x.id === target.id);
-        if(w) w.lifetimeSeen = (w.lifetimeSeen||0) + 1;
-      }
-      saveData(DATA);
-
+  if(poolKey === "tag"){
+    const q = DATA.tagQuizzes?.[currentTag];
+    const ids = (q?.ids || []).slice();
+    if(!ids.length){
+      currentQuestion = null;
       renderPlay();
-      // auto speak after new question (gentle)
-      speakKorean(currentQuestion.korean);
+      return;
     }
+
+    // Prefer items not yet mastered; bias by wrong count
+    const scored = ids.map(id => {
+      const st = q.stats?.[id] || { correct:0, wrong:0 };
+      const remaining = Math.max(0, 5 - (st.correct||0));
+      const score = (remaining * 3) + (st.wrong||0); // higher = more urgent
+      return { id, score, remaining };
+    });
+
+    // If complete, still allow practice: focus on most-missed words
+    scored.sort((a,b)=> b.score - a.score);
+
+    // Weighted pick among top few
+    const top = scored.slice(0, Math.min(6, scored.length));
+    const total = top.reduce((s,x)=> s + (x.score || 1), 0) || top.length;
+    let r = Math.random() * total;
+    for(const x of top){
+      r -= (x.score || 1);
+      if(r <= 0){
+        target = q.items?.[x.id];
+        break;
+      }
+    }
+    target = target || q.items?.[top[0]?.id] || q.items?.[ids[0]];
+  } else {
+    target = pool[Math.floor(Math.random()*pool.length)];
+  }
+
+  // Build 3 wrong choices
+  const getAllWordsForDistractors = () => {
+    const src = (DATA.sourcePool||[]).map(w=>({id:w.id, english:w.english}));
+    const diff = (DATA.difficultPool||[]).map(w=>({id:w.id, english:w.english}));
+    const learned = (DATA.learnedWords||[]).map(w=>({id:w.id, english:w.english}));
+    const tagItems = Object.values(DATA.tagQuizzes||{}).flatMap(q => Object.values(q.items||{}).map(w=>({id:w.id, english:w.english})));
+    const all = [...src, ...diff, ...learned, ...tagItems];
+    // de-dupe by id
+    const map = new Map();
+    for(const x of all){
+      if(!x?.id || !x?.english) continue;
+      if(!map.has(x.id)) map.set(x.id, x);
+    }
+    return Array.from(map.values());
+  };
+
+  let wrongs = [];
+  if(poolKey === "tag"){
+    const q = DATA.tagQuizzes?.[currentTag];
+    const others = (q?.ids || []).filter(id => id !== target.id).map(id => q.items?.[id]).filter(Boolean);
+    wrongs = shuffle(others).map(w=>({id:w.id, english:w.english})).slice(0,3);
+  } else {
+    const allCandidates = (poolKey==="diff" ? DATA.difficultPool : DATA.sourcePool);
+    const others = allCandidates.filter(w => w.id !== target.id);
+    wrongs = shuffle(others).map(w=>({id:w.id, english:w.english})).slice(0,3);
+  }
+
+  if(wrongs.length < 3){
+    const all = shuffle(getAllWordsForDistractors()).filter(w => w.id !== target.id);
+    while(wrongs.length < 3 && all.length){
+      const x = all.shift();
+      if(!wrongs.some(w=>w.english===x.english)) wrongs.push(x);
+    }
+  }
+
+  const choices = shuffle([
+    { id: target.id, english: target.english, correct:true },
+    ...wrongs.map(w => ({ id: w.id, english: w.english, correct:false }))
+  ]).slice(0,4);
+
+  currentQuestion = {
+    poolKey,
+    wordId: target.id,
+    korean: target.korean,
+    roman: target.roman || romanizeHangul(target.korean),
+    correctEnglish: target.english,
+    choices,
+    revealed: false,
+    answered: false
+  };
+
+  // bookkeeping
+  if(poolKey === "source"){
+    const w = DATA.sourcePool.find(x => x.id === target.id);
+    if(w) w.lifetimeSeen = (w.lifetimeSeen||0) + 1;
+    saveData(DATA);
+  } else if(poolKey === "tag"){
+    const q = DATA.tagQuizzes?.[currentTag];
+    if(q){
+      q.stats = q.stats || {};
+      q.stats[target.id] = q.stats[target.id] || { correct:0, wrong:0, seen:0 };
+      q.stats[target.id].seen = (q.stats[target.id].seen||0) + 1;
+      saveData(DATA);
+    }
+  } else {
+    saveData(DATA);
+  }
+
+  renderPlay();
+  speakKorean(currentQuestion.korean);
+}
 
     function revealAnswer(){
       if(!currentQuestion) return;
@@ -998,7 +1252,12 @@ function saveData(data){
       }
 
       // Show explanation block + speak
-      const line1 = correct ? `✅ Correct! +1 point.` : `❌ Not quite. This word is added to your Difficult Words Pool.`;
+      const line1 = (()=>{
+        if(currentQuestion.poolKey === "tag"){
+          return correct ? `✅ Correct! (+1 for this tag quiz)` : `❌ Not quite. (Tracked in this tag quiz only)`;
+        }
+        return correct ? `✅ Correct! +1 point.` : `❌ Not quite. This word is added to your Difficult Words Pool.`;
+      })();
       const line2 = `<b>${escapeHTML(currentQuestion.korean)}</b> — <span class="mono">${escapeHTML(currentQuestion.roman)}</span>`;
       const line3 = `Meaning: <b>${escapeHTML(currentQuestion.correctEnglish)}</b>`;
       renderPlayResult(`${line1}<br>${line2}<br>${line3}`, correct ? "good" : "bad");
@@ -1006,8 +1265,19 @@ function saveData(data){
       speakKorean(currentQuestion.korean);
 
       if(correct){
-        addPoint();
-        if(currentQuestion.poolKey === "source"){
+        if(currentQuestion.poolKey !== "tag") addPoint();
+        if(currentQuestion.poolKey === "tag"){
+          const q = DATA.tagQuizzes?.[currentTag];
+          if(q){
+            q.stats = q.stats || {};
+            q.stats[currentQuestion.wordId] = q.stats[currentQuestion.wordId] || { correct:0, wrong:0, seen:0 };
+            q.stats[currentQuestion.wordId].correct = (q.stats[currentQuestion.wordId].correct||0) + 1;
+            saveData(DATA);
+            if(isTagQuizComplete(currentTag)){
+              toast("Tag quiz complete! All words reached 5 correct.");
+            }
+          }
+        } else if(currentQuestion.poolKey === "source"){
           const w = DATA.sourcePool.find(x => x.id === currentQuestion.wordId);
           if(w){
             w.correct10 = (w.correct10||0) + 1;
@@ -1026,11 +1296,22 @@ function saveData(data){
           saveData(DATA);
         }
       } else {
-        // Wrong: add to difficult pool (based on source if exists; if in diff mode, add/++ anyway)
+        // Wrong
+        if(currentQuestion.poolKey === "tag"){
+          const q = DATA.tagQuizzes?.[currentTag];
+          if(q){
+            q.stats = q.stats || {};
+            q.stats[currentQuestion.wordId] = q.stats[currentQuestion.wordId] || { correct:0, wrong:0, seen:0 };
+            q.stats[currentQuestion.wordId].wrong = (q.stats[currentQuestion.wordId].wrong||0) + 1;
+            saveData(DATA);
+          }
+        } else {
+          // Wrong: add to difficult pool (based on source if exists; if in diff mode, add/++ anyway)
         const sourceWord = DATA.sourcePool.find(x=>x.id===currentQuestion.wordId)
           || DATA.difficultPool.find(x=>x.id===currentQuestion.wordId)
           || { id: currentQuestion.wordId, korean: currentQuestion.korean, english: currentQuestion.correctEnglish, roman: currentQuestion.roman };
         addToDifficult(sourceWord);
+        }
       }
 
       renderSidebarKPIs();
@@ -1077,13 +1358,30 @@ function saveData(data){
       ensureDailyDifficult();
 
       $("todayPill").textContent = todayISO();
-      $("modePill").textContent = `Mode: ${currentMode === MODE.SOURCE ? "Source Pool" : "Daily Difficult Quiz"}`;
+      $("modePill").textContent = `Mode: ${currentMode === MODE.SOURCE ? "Source Pool" : (currentMode === MODE.DAILY_DIFFICULT ? "Daily Difficult Quiz" : `${currentTag || "Tag"} Quiz`)}`;
 
-      const { pool } = getActivePool();
-      const playable = canPlay(pool);
+      const { pool, poolKey } = getActivePool();
+      const playable = canPlay(pool, poolKey);
 
       $("playEmpty").classList.toggle("hidden", playable);
+const minNeeded = (poolKey === "tag") ? 1 : 4;
+$("playEmpty").innerHTML = `You need at least <b>${minNeeded}</b> words in the active pool to play. Add more words in <b>Add Words</b>.`;
+
+
       $("quizArea").classList.toggle("hidden", !playable);
+
+// Tag select visibility
+const tagSel = $("tagSelect");
+if(tagSel){
+  const tags = Object.keys(DATA.tagQuizzes || {}).sort((a,b)=>a.localeCompare(b));
+  tagSel.innerHTML = tags.map(tg => `<option value="${escapeHTML(tg)}">${escapeHTML(tg)} Quiz</option>`).join("");
+  tagSel.classList.toggle("hidden", currentMode !== MODE.TAG);
+  if(currentMode === MODE.TAG){
+    if(!currentTag && tags.length) currentTag = tags[0];
+    tagSel.value = currentTag;
+  }
+}
+
 
       if(!playable){
         $("qKorean").textContent = "—";
@@ -1107,7 +1405,7 @@ function saveData(data){
         const btn = document.createElement("button");
         btn.className = "choice";
         btn.setAttribute("data-id", c.id);
-        btn.innerHTML = `<span>${escapeHTML(c.english)}</span>`;
+        btn.innerHTML = `<span>${escapeHTML(c.english)}</span><span class="badge">A</span>`;
         btn.addEventListener("click", () => answer(c.id));
         $("choices").appendChild(btn);
       }
@@ -1150,7 +1448,8 @@ function saveData(data){
           if(!q) return true;
           return (w.korean||"").toLowerCase().includes(q)
             || (w.english||"").toLowerCase().includes(q)
-            || (w.roman||"").toLowerCase().includes(q);
+            || (w.roman||"").toLowerCase().includes(q)
+            || (w.tag||"").toLowerCase().includes(q);
         });
 
       $("sourceCountPill").textContent = `${DATA.sourcePool.length} words`;
@@ -1163,9 +1462,11 @@ function saveData(data){
           <td><b>${escapeHTML(w.korean)}</b></td>
           <td class="mono">${escapeHTML(w.roman || romanizeHangul(w.korean))}</td>
           <td>${escapeHTML(w.english)}</td>
+          <td>${escapeHTML((w.tag||""))}</td>
           <td class="center">${escapeHTML(w.lifetimeCorrect || 0)} <span class="muted">(${escapeHTML(w.correct10||0)}/5)</span></td>
           <td class="right">
             <button class="btn" data-act="speak" data-id="${w.id}">🔊</button>
+            <button class="btn" data-act="tag" data-id="${w.id}">🏷️</button>
             <button class="btn danger" data-act="del" data-id="${w.id}">Delete</button>
           </td>
         `;
@@ -1189,6 +1490,18 @@ function saveData(data){
               }
               renderAll();
             }
+          });
+        } else if(act === "tag"){
+          btn.addEventListener("click", () => {
+            const w = DATA.sourcePool.find(x=>x.id===id);
+            if(!w) return;
+            const cur = (w.tag || "");
+            const tg = prompt(`Set tag for:\n\n${w.korean} — ${w.english}\n\nLeave blank to remove tag.`, cur);
+            if(tg === null) return;
+            w.tag = (tg || "").trim();
+            saveData(DATA);
+            toast("Tag saved");
+            renderAll();
           });
         } else if(act === "speak"){
           btn.addEventListener("click", () => {
@@ -1314,12 +1627,110 @@ function saveData(data){
       }
     }
 
-    function renderTables(){
+    
+function renderTagsPage(){
+  const tagsInSource = getTagsInSource();
+  $("tagCountPill").textContent = `${tagsInSource.length} tags`;
+
+  // Fill main tag table
+  const tb = $("tagTable");
+  tb.innerHTML = "";
+  if(!tagsInSource.length){
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td colspan="4" class="muted">No tags found yet. Add a tag when you add a word (or import data that includes tags).</td>`;
+    tb.appendChild(tr);
+  } else {
+    for(const tg of tagsInSource){
+      const count = (DATA.sourcePool||[]).filter(w => normTag(w.tag) === tg).length;
+      const quiz = DATA.tagQuizzes?.[tg];
+      const prog = quiz ? tagQuizProgress(tg) : { mastered:0, total:0 };
+      const pct = prog.total ? Math.round((prog.mastered/prog.total)*100) : 0;
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td><b>${escapeHTML(tg)}</b></td>
+        <td class="center">${escapeHTML(count)}</td>
+        <td class="center">${quiz ? `${escapeHTML(prog.mastered)}/${escapeHTML(prog.total)} (${escapeHTML(pct)}%)` : `<span class="muted">Not created</span>`}</td>
+        <td class="right">
+          <button class="btn primary" data-act="start" data-tag="${escapeHTML(tg)}">${escapeHTML(tg)} Quiz</button>
+          ${quiz ? `<button class="btn danger" data-act="reset" data-tag="${escapeHTML(tg)}">Reset</button>` : ``}
+        </td>
+      `;
+      tb.appendChild(tr);
+    }
+  }
+
+  tb.querySelectorAll("button").forEach(btn=>{
+    const act = btn.getAttribute("data-act");
+    const tg = btn.getAttribute("data-tag");
+    if(act === "start"){
+      btn.addEventListener("click", ()=> startTagQuiz(tg));
+    } else if(act === "reset"){
+      btn.addEventListener("click", ()=>{
+        if(confirm(`Reset progress for "${tg} Quiz"?`)){
+          delete DATA.tagQuizzes[tg];
+          saveData(DATA);
+          toast("Reset");
+          renderAll();
+        }
+      });
+    }
+  });
+
+  // Rank selector
+  const rankSel = $("tagRankSelect");
+  const quizzes = Object.keys(DATA.tagQuizzes || {}).sort((a,b)=>a.localeCompare(b));
+  rankSel.innerHTML = quizzes.map(tg=> `<option value="${escapeHTML(tg)}">${escapeHTML(tg)} Quiz</option>`).join("");
+  if(!rankSel.value && quizzes.length) rankSel.value = quizzes[0];
+
+  renderTagRankTable(rankSel.value || quizzes[0] || "");
+}
+
+function renderTagRankTable(tag){
+  const tb = $("tagRankTable");
+  tb.innerHTML = "";
+
+  const q = DATA.tagQuizzes?.[tag];
+  if(!q || !q.ids?.length){
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td colspan="5" class="muted">No tag quiz selected.</td>`;
+    tb.appendChild(tr);
+    return;
+  }
+
+  const rows = q.ids.map(id=>{
+    const it = q.items?.[id];
+    const st = q.stats?.[id] || { correct:0, wrong:0 };
+    return {
+      id,
+      korean: it?.korean || "",
+      roman: it?.roman || "",
+      english: it?.english || "",
+      wrong: st.wrong||0,
+      correct: st.correct||0
+    };
+  }).sort((a,b)=> (b.wrong - a.wrong) || (a.correct - b.correct));
+
+  for(const r of rows){
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><b>${escapeHTML(r.korean)}</b></td>
+      <td class="mono">${escapeHTML(r.roman || romanizeHangul(r.korean))}</td>
+      <td>${escapeHTML(r.english)}</td>
+      <td class="center">${escapeHTML(r.wrong)}</td>
+      <td class="center">${escapeHTML(r.correct)}/5</td>
+    `;
+    tb.appendChild(tr);
+  }
+}
+
+function renderTables(){
       // render only if page visible, but cheap enough to do all
       if(!$("page-source").classList.contains("hidden")) renderSourceTable();
       if(!$("page-diff").classList.contains("hidden")) renderDiffTable();
       if(!$("page-learned").classList.contains("hidden")) renderLearnedTable();
       if(!$("page-daily").classList.contains("hidden")) renderDailyPage();
+      if(!$("page-tags").classList.contains("hidden")) renderTagsPage();
     }
 
     function renderAll(){
@@ -1337,7 +1748,7 @@ function saveData(data){
       toast(mode === MODE.SOURCE ? "Mode: Source Pool" : "Mode: Daily Difficult");
     }
 
-    function addWord(korean, english, roman){
+    function addWord(korean, english, roman, tag){
       const k = (korean||"").trim();
       const e = (english||"").trim();
       if(!k || !e) return false;
@@ -1347,6 +1758,7 @@ function saveData(data){
       if(dupe) return false;
 
       const r = (roman||"").trim() || romanizeHangul(k);
+      const tg = (tag||"").trim();
       DATA.sourcePool.unshift({
         id: uid(),
         korean: k,
@@ -1355,7 +1767,8 @@ function saveData(data){
         correct10: 0,
         lifetimeCorrect: 0,
         lifetimeSeen: 0,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        tag: tg
       });
       saveData(DATA);
       return true;
@@ -1384,6 +1797,7 @@ function saveData(data){
             throw new Error("missing arrays");
           }
           DATA = obj;
+          migrateData();
           saveData(DATA);
           currentQuestion = null;
           toast("Imported");
@@ -1430,6 +1844,30 @@ function saveData(data){
       $("btnModeSource").addEventListener("click", ()=>setMode(MODE.SOURCE));
       $("btnModeDailyDifficult").addEventListener("click", ()=>setMode(MODE.DAILY_DIFFICULT));
 
+$("btnModeTagQuiz").addEventListener("click", ()=>{
+  // If no tag quizzes exist yet, send user to Tag Quizzes page
+  const tags = Object.keys(DATA.tagQuizzes || {});
+  if(!tags.length){
+    setTab("tags");
+    toast("Create a tag quiz first");
+    return;
+  }
+  currentMode = MODE.TAG;
+  currentTag = currentTag || tags.sort((a,b)=>a.localeCompare(b))[0];
+  currentQuestion = null;
+  renderAll();
+  toast(`${currentTag} Quiz`);
+});
+
+$("tagSelect").addEventListener("change", (ev)=>{
+  currentTag = ev.target.value || "";
+  if(currentMode === MODE.TAG){
+    currentQuestion = null;
+    renderAll();
+  }
+});
+
+
       $("btnResetToday").addEventListener("click", ()=>{
         const d = todayISO();
         if(confirm(`Reset points for ${d}?`)){
@@ -1456,11 +1894,13 @@ function saveData(data){
         const k = $("inKorean").value;
         const e = $("inEnglish").value;
         const r = $("inRoman").value;
-        const ok = addWord(k,e,r);
+        const tg = $("inTag").value;
+        const ok = addWord(k,e,r,tg);
         if(ok){
           $("inKorean").value="";
           $("inEnglish").value="";
           $("inRoman").value="";
+          $("inTag").value="";
           toast("Added");
           renderAll();
         }else{
@@ -1471,6 +1911,7 @@ function saveData(data){
         $("inKorean").value="";
         $("inEnglish").value="";
         $("inRoman").value="";
+        $("inTag").value="";
         $("bulk").value="";
         toast("Cleared");
       });
@@ -1478,7 +1919,7 @@ function saveData(data){
       $("btnBulkExample").addEventListener("click", ()=>{
         $("bulk").value =
 `안녕하세요 | Hello
-감사합니다 | Thank you | gamsahamnida
+감사합니다 | Thank you | gamsahamnida | Greetings
 괜찮아요 | It's okay / I'm fine
 화장실 | Bathroom / restroom`;
       });
@@ -1491,7 +1932,8 @@ function saveData(data){
           const k = parts[0] || "";
           const e = parts[1] || "";
           const r = parts[2] || "";
-          const ok = addWord(k,e,r);
+          const tg = parts[3] || "";
+          const ok = addWord(k,e,r,tg);
           if(ok) added++; else skipped++;
         }
         toast(`Bulk: added ${added}, skipped ${skipped}`);
@@ -1544,10 +1986,26 @@ function saveData(data){
           toast("Cleared");
           renderAll();
         }
-      });
-    }
 
-    // --------- Start ----------
+  });
+
+  // Tag quizzes page
+  $("tagRankSelect").addEventListener("change", (ev)=>{
+    renderTagRankTable(ev.target.value);
+  });
+
+  $("btnClearTagQuizzes").addEventListener("click", ()=>{
+    if(confirm("Clear ALL tag quiz progress? (This does not change your Source Pool.)")){
+      DATA.tagQuizzes = {};
+      saveData(DATA);
+      toast("Cleared");
+      renderAll();
+    }
+  });
+}
+
+// --------- Start ----------
+
     // --- Auth state: when signed in, load cloud save (or upload local if none) ---
     onAuthStateChanged(auth, async (user) => {
       if (user) {
@@ -1611,7 +2069,6 @@ function saveData(data){
   </script>
 </body>
 </html>
-
 
 
 
