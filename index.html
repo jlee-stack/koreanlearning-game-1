@@ -1107,7 +1107,7 @@ function saveData(data){
         const btn = document.createElement("button");
         btn.className = "choice";
         btn.setAttribute("data-id", c.id);
-        btn.innerHTML = `<span>${escapeHTML(c.english)}</span><span class="badge">A</span>`;
+        btn.innerHTML = `<span>${escapeHTML(c.english)}</span>`;
         btn.addEventListener("click", () => answer(c.id));
         $("choices").appendChild(btn);
       }
@@ -1611,6 +1611,7 @@ function saveData(data){
   </script>
 </body>
 </html>
+
 
 
 
