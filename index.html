@@ -271,6 +271,11 @@
           <div class="sub">Black, sleek, modern • Offline-first (LocalStorage) • For English-native learners</div>
         </div>
       </div>
+      <div class="row" style="justify-content:flex-end">
+        <span class="pill" id="authPill">Cloud: Signed out</span>
+        <button class="btn primary" id="btnSignIn">Sign in</button>
+        <button class="btn" id="btnSignOut" disabled>Sign out</button>
+      </div>
       <nav id="nav"></nav>
     </header>
 
@@ -546,13 +551,27 @@
     <div class="toast" id="toast">Saved</div>
   </div>
 
-  <script>
+  <script type="module">
     /***********************
      * Multiple Choice Game v1
      * Single-file, GitHub-ready
      * Storage: localStorage
      ***********************/
-
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import {
+  getAuth,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signOut,
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+import {
+  getFirestore,
+  doc,
+  getDoc,
+  setDoc
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+    
     // --------- Utilities ----------
     const $ = (id) => document.getElementById(id);
     const todayISO = () => new Date().toISOString().slice(0,10);
@@ -576,6 +595,57 @@
       return a;
     }
 
+    /***********************
+ * Firebase (Auth + Firestore)
+ ***********************/
+const firebaseConfig = {
+  apiKey: "AIzaSyBB8pOSedIoFmaF7xAWNjybi7JD5Fsm3cg",
+  authDomain: "korean-language-game.firebaseapp.com",
+  projectId: "korean-language-game",
+  storageBucket: "korean-language-game.firebasestorage.app",
+  messagingSenderId: "789551475084",
+  appId: "1:789551475084:web:fc3fbd9dd172ece58dcea9"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const provider = new GoogleAuthProvider();
+
+// Firestore document path: /users/<uid>
+function userDocRef(uid) {
+  return doc(db, "users", uid);
+}
+
+let CURRENT_UID = null;
+
+// Debounced cloud save so you don't write on every tiny update
+let cloudSaveTimer = null;
+function scheduleCloudSave() {
+  if (!CURRENT_UID) return;
+  clearTimeout(cloudSaveTimer);
+  cloudSaveTimer = setTimeout(async () => {
+    try {
+      await setDoc(userDocRef(CURRENT_UID), { data: DATA }, { merge: true });
+      // optional: toast("Cloud saved");
+    } catch (e) {
+      console.warn("Cloud save failed:", e);
+      toast("Cloud save failed (offline?)");
+    }
+  }, 400);
+}
+
+async function loadCloudData(uid) {
+  const snap = await getDoc(userDocRef(uid));
+  if (!snap.exists()) return null;
+  const obj = snap.data();
+  return obj?.data ?? null;
+}
+
+async function writeCloudData(uid, data) {
+  await setDoc(userDocRef(uid), { data }, { merge: true });
+}
+    
     // --------- Basic Hangul Romanization (approx. Revised Romanization) ----------
     // This is an educational approximation. Full RR has context rules; we keep it simple & consistent.
     const L = ["g","kk","n","d","tt","r","m","b","pp","s","ss","","j","jj","ch","k","t","p","h"];
@@ -640,18 +710,35 @@
       synth.speak(u);
     }
 
-    // --------- Storage ----------
-    const KEY = "mcg_v1_data";
-    function loadData(){
-      const raw = localStorage.getItem(KEY);
-      if(raw){
-        try { return JSON.parse(raw); } catch {}
-      }
-      return null;
-    }
-    function saveData(data){
-      localStorage.setItem(KEY, JSON.stringify(data));
-    }
+   
+ // --------- Storage (local + cloud) ----------
+const KEY = "mcg_v1_data";
+
+function loadDataLocal(){
+  const raw = localStorage.getItem(KEY);
+  if(raw){
+    try { return JSON.parse(raw); } catch {}
+  }
+  return null;
+}
+
+function saveDataLocal(data){
+  localStorage.setItem(KEY, JSON.stringify(data));
+}
+
+// Keep the same function names the rest of your app expects:
+function loadData(){
+  // initial boot uses local immediately; cloud (if signed in) will override later
+  return loadDataLocal();
+}
+
+function saveData(data){
+  // always keep local as offline backup
+  saveDataLocal(data);
+
+  // if signed in, also sync to Firestore (debounced)
+  scheduleCloudSave();
+}
 
     function defaultSeed(){
       // Topik I-ish common starter words (Korean | English)
@@ -1310,6 +1397,25 @@
 
     // --------- Wire UI ----------
     function wire(){
+
+      // --- Auth buttons ---
+      $("btnSignIn").addEventListener("click", async () => {
+        try {
+          await signInWithPopup(auth, provider);
+        } catch (e) {
+          console.warn(e);
+          toast("Sign-in failed (popup blocked?)");
+        }
+      });
+      
+      $("btnSignOut").addEventListener("click", async () => {
+        try {
+          await signOut(auth);
+        } catch (e) {
+          c:contentReference[oaicite:11]{index=11}oast("Sign-out failed");
+        }
+      });
+      
       // Play page buttons
       $("btnSpeak").addEventListener("click", ()=> {
         if(currentQuestion) speakKorean(currentQuestion.korean);
@@ -1441,6 +1547,42 @@
     }
 
     // --------- Start ----------
+    // --- Auth state: when signed in, load cloud save (or upload local if none) ---
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        CURRENT_UID = user.uid;
+        $("authPill").textContent = `Cloud: ${user.email || "Signed in"}`;
+        $("btnSignIn").disabled = true;
+        $("btnSignOut").disabled = false;
+    
+        try {
+          const cloud = await loadCloudData(CURRENT_UID);
+    
+          if (cloud) {
+            // Cloud wins (sync across devices)
+            DATA = cloud;
+            saveDataLocal(DATA); // keep a fresh local backup
+            currentQuestion = null;
+            toast("Loaded cloud save");
+            renderAll();
+          } else {
+            // First time signing in: upload existing local progress
+            await writeCloudData(CURRENT_UID, DATA);
+            toast("Cloud save created");
+          }
+        } catch (e) {
+          console.warn("Cloud load failed:", e);
+          toast("Cloud load failed (offline?)");
+        }
+      } else {
+        CURRENT_UID = null;
+        $("authPill").textContent = "Cloud: Signed out";
+        $("btnSignIn").disabled = false;
+        $("btnSignOut").disabled = true;
+        // Stay in local mode; nothing else needed
+      }
+    });
+    
     renderNav();
     wire();
     ensureDailyDifficult();
@@ -1468,5 +1610,6 @@
   </script>
 </body>
 </html>
+
 
 
